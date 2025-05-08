@@ -1,0 +1,107 @@
+main1.py is the hearh of the model
+--------------------------------------------------------------------------------------------------------------------------
+main.py
+
+User types in UI ─► Gradio `submit()` ─► user() adds message
+                    └───► then(bot) ─► get_inference_response(query) [main1.py]
+                                       ├── setup_dbqa()
+                                       │     ├── build_llm()  ← loads GGUF model
+                                       │     ├── HuggingFaceEmbeddings(...) ← embedding model
+                                       │     └── FAISS.load_local(...) ← retrieves chunks
+                                       └── dbqa({...}) ← runs LLM over chunks
+                              ↑
+                Final response returned and shown in Gradio
+
+---------------------------------------------------------------------------------------------------------------------------------------
+app.py:
+
+External API Call ─► POST /api/query ─► get_response() [app.py]
+                                │
+                                └───► call_get_inference_response(query)
+                                          │
+                                          └──► get_inference_response(query) [main1.py]
+                                                    ├── setup_dbqa()
+                                                    │     ├── build_llm()  ← loads GGUF model
+                                                    │     ├── HuggingFaceEmbeddings(...) ← embedding model
+                                                    │     └── FAISS.load_local(...) ← retrieves chunks
+                                                    └── dbqa({...}) ← runs LLM over chunks
+                                           ↑
+                             Final response returned as JSON {"response": "..."}
+
+
+---------------------------------
+
+✅ Use main.py when:
+You want an interactive chat interface for internal teams, stakeholders, or demos.
+
+You want to see responses and sources visually.
+
+✅ Use app.py when:
+You need a lightweight API that external tools or systems can call.
+
+You want to expose your model programmatically without any frontend.
+
+You’re integrating it with a mobile app, web frontend, or automation script.
+
+---------------------------------------------------------
+
+
+Feature	Gradio    (main.py)	                          Flask (app.py)
+Uses Flask?	        ❌ No	                           ✅ Yes
+UI Provided?	    ✅ Yes (chat-style interface)	   ❌ No (API only)
+API Endpoint?	    ❌ No REST API	                   ✅ Yes, at /api/query
+Call chain	        UI → Python functions	             HTTP POST → Python functions
+
+---------------------------------------------------------------------
+
+python main.py
+
+    - Launches browser UI
+
+    - You type your question in chat
+
+    - Calls Python functions directly (no Flask involved)
+
+python app.py
+
+    - Starts backend API server
+
+    - You can now send POST requests like:
+           curl -X POST http://localhost:8080/api/query -H "Content-Type: application/json" -d "{\"query\": \"What is AI?\"}"
+
+---------------------------------------------------------------------------------------------------------------
+
+🔹 main.py — For local UI testing and human interaction
+    This file runs Gradio, which is:
+
+        A beautiful interactive chat UI in your browser
+
+        Great for demoing, testing, or debugging locally
+
+        Directly runs functions like get_inference_response(...) without any HTTP requests
+
+✅ Use main.py when:
+    You want to see and test the model’s responses live
+
+    You’re developing or tuning the LLM response logic
+
+    You're showing a proof-of-concept or demo
+-----------------------------------
+
+🔹 app.py — For integrating with other systems or production
+This file runs Flask, which:
+
+    Creates a REST API endpoint (/api/query)
+
+    Can be called by other apps, UIs, services (e.g. JavaScript frontend, mobile app, etc.)
+
+    Allows external tools or clients to interact with your model using HTTP requests
+
+✅ Use app.py when:
+    You need to serve your model to other applications
+
+    You're building a production-ready backend
+
+    You want to host on a server (e.g. AWS, GCP, Azure)
+
+    You're using API clients (like Postman, curl, etc.)
